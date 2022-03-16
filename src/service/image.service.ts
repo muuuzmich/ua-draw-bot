@@ -21,9 +21,13 @@ export class ImageService extends BaseService {
     const user = ctx.message?.from!;
     const userPics = await ctx.telegram.getUserProfilePhotos(user.id, 0, 1);
     const userBiggestPicData = [...userPics.photos[0]].pop();
-    if (!userBiggestPicData) return;
+    if (!userBiggestPicData) {
+      return ctx.reply("No user photo");
+    }
 
+    await ctx.reply("Image received. Processing...");
     const userProfileLink = await ctx.telegram.getFileLink(userBiggestPicData?.file_id!);
+    await ctx.reply("Downloading image...");
     const image = await this.downloadImage(userProfileLink.toString());
 
     await this.drawOverAndSend(ctx, image, userBiggestPicData.height, userBiggestPicData.width);
@@ -38,6 +42,7 @@ export class ImageService extends BaseService {
     const photoList = ctx.message.photo;
     const biggestPhoto = [...photoList].pop();
     if (!biggestPhoto) {
+      ctx.reply("No photo");
       return;
     }
 
@@ -48,14 +53,11 @@ export class ImageService extends BaseService {
     await this.drawOverAndSend(ctx, image, biggestPhoto.height, biggestPhoto.width);
   }
 
-  private async drawOverAndSend(
-    ctx: Context,
-    image: Buffer,
-    height: number,
-    width: number
-  ): Promise<Message.PhotoMessage> {
+  private async drawOverAndSend(ctx: Context, image: Buffer, height: number, width: number): Promise<Message> {
+    await ctx.reply("Start image generation...");
     const newImage = await generateImage(image, height, width);
-    return ctx.replyWithPhoto({ source: newImage });
+    await ctx.replyWithPhoto({ source: newImage });
+    return ctx.replyWithMarkdown("Done!\nGlory to Uktraine 🇺🇦");
   }
 
   private async downloadImage(url: string): Promise<Buffer> {

@@ -24,24 +24,6 @@ To run bot
 
     $ npm run watch:dev
 
-# Bot architecture:
-
-## Basic idea
-
-Every user action is handeled by corresponding service. Each service has list of BotListeners to handle specific action:
-
-```
-{
-    type: BotCommandType.ON,
-    name: "photo",
-    callback: (ctx: Context) => this.imageRecieved(ctx),
-}
-```
-
-## Services
-
-Any new services should implement singleton pattern. It must extend `BaseService` and implement `initListeners` method. Also to make them work, make sure to pass them into App constructor in `index.ts`.
-
 ### Creators:
 
 - Idea by: @dimkeaton

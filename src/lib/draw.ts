@@ -1,5 +1,4 @@
 import { createCanvas, Image, loadImage } from "canvas";
-import fs from "fs";
 import { map } from "./p5/map";
 import { noise } from "./p5/noise";
 import { random } from "./p5/random";
@@ -15,14 +14,15 @@ export async function generateImage(bgImage: Buffer, height: number = 1000, widh
   const colorPos = random(0.2, 0.8);
   const noiseScale = random(15, 100);
   const noiseIncrement = 0.0001;
+  const crop = 0.15;
   const loopCount = 1000;
-  const palette = ["yellow", "blue"];
+  const palette = ["#ffd700", "#0057b7"];
 
   const img = await loadImage(bgImage);
   ctx.drawImage(img, 0, 0);
 
-  x1 = map(noise(xoff * noiseScale, 0), 0, 1, 0, widht);
-  y1 = map(noise(yoff * noiseScale, 0), 0, 1, 0, height);
+  x1 = map(noise(xoff * noiseScale, 0), 0 + crop, 1 - crop, 0, widht);
+  y1 = map(noise(yoff * noiseScale, 0), 0 + crop, 1 - crop, 0, height);
 
   //DRAW
   ctx.strokeStyle = palette[0];
