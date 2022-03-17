@@ -1,4 +1,5 @@
 import Bot from "./bot";
+import Server from "./server";
 
 export default class App {
   private static instance: App;
@@ -8,6 +9,7 @@ export default class App {
   public constructor(public services: any[]) {}
 
   public start() {
+    new Server();
     this.startServices();
     this.startPostHandlers();
   }
