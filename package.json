@@ -23,6 +23,6 @@
     "tsc-watch": "4.2.9"
   },
   "engines": {
-    "node": "15.x"
+    "node": "14.x"
   }
 }
