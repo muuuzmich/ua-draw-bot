@@ -1,6 +1,6 @@
 import { Context, Telegraf } from "telegraf";
 import { MessageSubType } from "telegraf/typings/telegram-types";
-import { BotListener } from "../types/service/image.service.type";
+import { BotListener } from "../types/core/global.type";
 
 export default class Bot {
   private static instance: Bot;

@@ -1,5 +1,5 @@
 import Bot from "../core/bot";
-import { BotListener } from "../types/service/image.service.type";
+import { BotListener } from "../types/core/global.type";
 
 export default abstract class BaseService {
   public title?: string;

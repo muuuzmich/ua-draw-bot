@@ -1,10 +1,10 @@
 import axios from "axios";
-import fs from "fs";
-import { Context } from "telegraf";
-import { Message, PhotoSize, Update } from "telegraf/typings/core/types/typegram";
-import { MessageSubType } from "telegraf/typings/telegram-types";
+import { Context, Markup } from "telegraf";
+import { Message, PhotoSize, User } from "telegraf/typings/core/types/typegram";
+import { ExtraPhoto, MessageSubType } from "telegraf/typings/telegram-types";
 import { generateImage } from "../lib/draw";
-import { BotCommandType, BotListener } from "../types/service/image.service.type";
+import { BotCommandType, BotListener } from "../types/core/global.type";
+import { ImageAction, ImageError, ImageTypo } from "../types/service/image.service.type";
 import BaseService from "./base.service";
 
 export class ImageService extends BaseService {
@@ -19,50 +19,99 @@ export class ImageService extends BaseService {
 
   private async onStart(ctx: Context, next: Function) {
     const user = ctx.message?.from!;
-    const userPics = await ctx.telegram.getUserProfilePhotos(user.id, 0, 1);
-    const userBiggestPicData = [...userPics.photos[0]].pop();
-    if (!userBiggestPicData) {
-      return ctx.reply("No user photo");
-    }
+    await this.useProfilePicture(ctx, user);
 
-    await ctx.reply("Image received. Processing...");
-    const userProfileLink = await ctx.telegram.getFileLink(userBiggestPicData?.file_id!);
-    await ctx.reply("Downloading image...");
-    const image = await this.downloadImage(userProfileLink.toString());
-
-    await this.drawOverAndSend(ctx, image, userBiggestPicData.height, userBiggestPicData.width);
     next();
   }
 
-  private async imageRecieved(ctx: Context<Update>) {
+  private async useProfilePicture(ctx: Context, user: User) {
+    const { photos } = await ctx.telegram.getUserProfilePhotos(user.id, 0, 1);
+    if (!photos || !photos.length) {
+      return ctx.reply(ImageError.no_user_photo);
+    }
+    const userBiggestPicData = photos[0].pop();
+
+    this.processImage(ctx, null, userBiggestPicData!);
+  }
+
+  private async imageRecieved(ctx: Context) {
     if (!("photo" in ctx.message!)) return;
 
-    await ctx.reply("Image received. Processing...");
-
+    const messageId = ctx.message.message_id;
     const photoList = ctx.message.photo;
-    const biggestPhoto = [...photoList].pop();
-    if (!biggestPhoto) {
-      ctx.reply("No photo");
+    const photo = photoList.pop();
+
+    if (!photo) {
+      ctx.reply(ImageError.no_photo);
       return;
     }
 
-    const link = await ctx.telegram.getFileLink(biggestPhoto.file_id);
-
-    const image: Buffer = await this.downloadImage(link.toString());
-
-    await this.drawOverAndSend(ctx, image, biggestPhoto.height, biggestPhoto.width);
+    await this.processImage(ctx, messageId, photo);
   }
 
-  private async drawOverAndSend(ctx: Context, image: Buffer, height: number, width: number): Promise<Message> {
-    await ctx.reply("Start image generation...");
+  private async processImage(ctx: Context, replyMessageId: number | null, { file_id, height, width }: PhotoSize) {
+    await ctx.reply(ImageTypo.processing);
+
+    const link = await ctx.telegram.getFileLink(file_id);
+    const image = await this.downloadImage(link.toString());
+
+    await this.drawOverAndSend(ctx, image, replyMessageId, height, width);
+  }
+
+  private async drawOverAndSend(
+    ctx: Context,
+    image: Buffer,
+    originPhotoId: number | null,
+    height: number,
+    width: number
+  ): Promise<Message> {
     const newImage = await generateImage(image, height, width);
-    await ctx.replyWithPhoto({ source: newImage });
-    return ctx.replyWithMarkdown("Done!\nGlory to Uktraine 🇺🇦");
+
+    return await ctx.replyWithPhoto({ source: newImage }, this.getPhotoExtra(originPhotoId));
   }
 
   private async downloadImage(url: string): Promise<Buffer> {
-    const file = await axios({ url, responseType: "arraybuffer" });
-    return file.data;
+    const result = await axios({ url, responseType: "arraybuffer" });
+    return result.data;
+  }
+
+  private async retry(ctx: Context, usePhotoFromReply: boolean = false) {
+    if (!("callbackQuery" in ctx) || !("data" in ctx.callbackQuery!) || !("message" in ctx.callbackQuery!)) return;
+    if (!("reply_to_message" in ctx.callbackQuery.message!)) return ctx.reply(ImageError.message_deleted);
+
+    const replyMessageId = ctx.callbackQuery.message.reply_to_message?.message_id!;
+
+    const originalMessage = usePhotoFromReply ? ctx.callbackQuery.message : ctx.callbackQuery.message.reply_to_message!;
+
+    if (!("photo" in originalMessage)) return;
+
+    const photo = originalMessage.photo.pop();
+
+    await this.processImage(ctx, replyMessageId, photo!);
+  }
+
+  private async retryWithProfile(ctx: Context) {
+    const user = ctx.callbackQuery?.from;
+    if (!user) {
+      return;
+    }
+    await this.useProfilePicture(ctx, user);
+  }
+
+  private getPhotoExtra(originPhotoId: number | null): ExtraPhoto {
+    const buttonText = originPhotoId ? ImageTypo.retry : ImageTypo.retryWithProfile;
+    const buttonAction = originPhotoId ? ImageAction.retry : ImageAction.retryWithProfile;
+
+    return {
+      reply_markup: {
+        inline_keyboard: [
+          [Markup.button.callback(buttonText, buttonAction)],
+          [Markup.button.callback(ImageTypo.repeat, ImageAction.repeat)],
+        ],
+      },
+      caption: ImageTypo.PhotoCaption,
+      reply_to_message_id: originPhotoId || undefined,
+    };
   }
 
   protected initListeners(): BotListener[] {
@@ -72,6 +121,21 @@ export class ImageService extends BaseService {
         type: BotCommandType.ON,
         name: "photo" as MessageSubType,
         callback: (ctx: Context) => this.imageRecieved(ctx),
+      },
+      {
+        type: BotCommandType.ACTION,
+        name: ImageAction.repeat,
+        callback: (ctx: Context) => this.retry(ctx),
+      },
+      {
+        type: BotCommandType.ACTION,
+        name: ImageAction.retry,
+        callback: (ctx: Context) => this.retry(ctx, true),
+      },
+      {
+        type: BotCommandType.ACTION,
+        name: ImageAction.retryWithProfile,
+        callback: (ctx: Context) => this.retryWithProfile(ctx),
       },
     ];
   }
