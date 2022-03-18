@@ -75,15 +75,19 @@ export class ImageService extends BaseService {
     return result.data;
   }
 
-  private async retry(ctx: Context, usePhotoFromReply: boolean = false) {
+  private async retry(ctx: Context, repeat: boolean = false) {
     if (!("callbackQuery" in ctx) || !("data" in ctx.callbackQuery!) || !("message" in ctx.callbackQuery!)) return;
-    if (!("reply_to_message" in ctx.callbackQuery.message!)) return ctx.reply(ImageError.message_deleted);
 
-    const replyMessageId = ctx.callbackQuery.message.reply_to_message?.message_id!;
-
-    const originalMessage = usePhotoFromReply ? ctx.callbackQuery.message : ctx.callbackQuery.message.reply_to_message!;
+    let originalMessage;
+    if ("reply_to_message" in ctx.callbackQuery.message!) {
+      originalMessage = ctx.callbackQuery.message.reply_to_message!;
+    } else {
+      originalMessage = ctx.callbackQuery.message!;
+    }
 
     if (!("photo" in originalMessage)) return;
+
+    const replyMessageId = originalMessage?.message_id;
 
     const photo = originalMessage.photo.pop();
 
