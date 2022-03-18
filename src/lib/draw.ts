@@ -58,7 +58,7 @@ export async function generateImage(bgImage: Buffer, height: number, width: numb
 }
 
 function generateCoordinate(value: number, max: number, noiseScale: number) {
-  return Math.floor(map(noise(value * noiseScale), 0, 1, max * crop, max - max * crop));
+  return Math.floor(map(noise(value * noiseScale), 0 + crop, 1 - crop, 0, max));
 }
 
 function drawBoundaries(ctx: Context, height: number, width: number) {
