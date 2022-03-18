@@ -4,7 +4,7 @@ Telegram bot written with TypeScript and Telegraf.
 
 It draws random doodle 🇺🇦-colored images using parts of p5.js over given images.
 
-Main idea - change your avatar photos to spread avarnes about situation and support my country Ukraine 🇺🇦
+Main idea - change your avatar photos to spread awareness about situation and support my country Ukraine 🇺🇦
 
 Telegram Bot live: [@ua_draw_bot](https://t.me/ua_draw_bot)
 
