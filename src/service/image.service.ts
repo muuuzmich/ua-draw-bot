@@ -124,12 +124,12 @@ export class ImageService extends BaseService {
       },
       {
         type: BotCommandType.ACTION,
-        name: ImageAction.repeat,
+        name: ImageAction.retry,
         callback: (ctx: Context) => this.retry(ctx),
       },
       {
         type: BotCommandType.ACTION,
-        name: ImageAction.retry,
+        name: ImageAction.repeat,
         callback: (ctx: Context) => this.retry(ctx, true),
       },
       {
