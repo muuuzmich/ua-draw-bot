@@ -3,27 +3,33 @@ import { map } from "./p5/map";
 import { noise } from "./p5/noise";
 import { random } from "./p5/random";
 
-export async function generateImage(bgImage: Buffer, height: number, widht: number): Promise<Buffer> {
-  const canvas = createCanvas(widht, height);
-  const ctx = canvas.getContext("2d");
+const cc = createCanvas(0, 0);
+const c = cc.getContext("2d");
+type Context = typeof c;
 
+const crop = 0.05;
+const colorPos = 0.5;
+const noiseIncrement = 0.0001;
+const loopCount = 1000;
+const palette = ["#ffd700", "#0057b7"];
+
+export async function generateImage(bgImage: Buffer, height: number, width: number): Promise<Buffer> {
   //Setup
-  let yoff = 0.1,
-    xoff = 0.0,
-    x1,
-    y1;
-  const colorPos = 0.5; //random(0.2, 0.8);
-  const noiseScale = random(15, 100);
-  const noiseIncrement = 0.0002;
-  const crop = 0.15;
-  const loopCount = 1000;
-  const palette = ["#ffd700", "#0057b7"];
+  const noiseScale = random(50, 100);
+
+  let yoff = 0.1;
+  let xoff = 0.0;
+  let x1 = generateCoordinate(xoff, width, noiseScale);
+  let y1 = generateCoordinate(yoff, height, noiseScale);
+
+  //Draw
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
 
   const img = await loadImage(bgImage);
   ctx.drawImage(img, 0, 0);
 
-  x1 = map(noise(xoff * noiseScale, 0), 0 + crop, 1 - crop, 0, widht);
-  y1 = map(noise(yoff * noiseScale, 0), 0 + crop, 1 - crop, 0, height);
+  // drawBoundaries(ctx, height, width);
 
   ctx.strokeStyle = palette[0];
   for (let i = 1; i <= loopCount; i++) {
@@ -33,8 +39,10 @@ export async function generateImage(bgImage: Buffer, height: number, widht: numb
 
     xoff += noiseIncrement;
     yoff += noiseIncrement;
-    let x2 = map(noise(xoff * noiseScale), 0 + crop, 1 - crop, 0, widht);
-    let y2 = map(noise(yoff * noiseScale), 0 + crop, 1 - crop, 0, height);
+
+    let x2 = generateCoordinate(xoff, width, noiseScale);
+    let y2 = generateCoordinate(yoff, height, noiseScale);
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
@@ -47,4 +55,27 @@ export async function generateImage(bgImage: Buffer, height: number, widht: numb
   }
 
   return canvas.toBuffer("image/png");
+}
+
+function generateCoordinate(value: number, max: number, noiseScale: number) {
+  return Math.floor(map(noise(value * noiseScale), 0, 1, max * crop, max - max * crop));
+}
+
+function drawBoundaries(ctx: Context, height: number, width: number) {
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 3;
+
+  ctx.beginPath();
+  ctx.moveTo(width * crop, height * crop);
+  ctx.lineTo(width - width * crop, height * crop);
+
+  ctx.moveTo(width - width * crop, height * crop);
+  ctx.lineTo(width - width * crop, height - height * crop);
+
+  ctx.moveTo(width - width * crop, height - height * crop);
+  ctx.lineTo(width * crop, height - height * crop);
+
+  ctx.moveTo(width * crop, height * crop);
+  ctx.lineTo(width * crop, height - height * crop);
+  ctx.stroke();
 }
