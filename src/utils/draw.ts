@@ -1,21 +1,25 @@
 import { createCanvas, loadImage } from "canvas";
-import { map } from "./p5/map";
-import { noise } from "./p5/noise";
-import { random } from "./p5/random";
+import { map } from "../lib/p5/map";
+import { noise } from "../lib/p5/noise";
+import { random } from "../lib/p5/random";
 
 const cc = createCanvas(0, 0);
 const c = cc.getContext("2d");
 type Context = typeof c;
 
-const crop = 0.05;
+let crop = 0;
 const colorPos = 0.5;
 const noiseIncrement = 0.0001;
 const loopCount = 1000;
-const palette = ["#ffd700", "#0057b7"];
+// const palette = ["#ffd700", "#0057b7"];
+const palette = ["yellow", "blue"];
+//misha dunduk
 
 export async function generateImage(bgImage: Buffer, height: number, width: number): Promise<Buffer> {
   //Setup
-  const noiseScale = random(50, 100);
+  const noiseScale = random(70, 100);
+
+  crop = random(0.1, 0.25);
 
   let yoff = 0.1;
   let xoff = 0.0;
@@ -43,11 +47,12 @@ export async function generateImage(bgImage: Buffer, height: number, width: numb
     let x2 = generateCoordinate(xoff, width, noiseScale);
     let y2 = generateCoordinate(yoff, height, noiseScale);
 
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
-    ctx.lineWidth = 6;
-    ctx.lineCap = "round";
     ctx.stroke();
 
     x1 = x2;
@@ -58,7 +63,7 @@ export async function generateImage(bgImage: Buffer, height: number, width: numb
 }
 
 function generateCoordinate(value: number, max: number, noiseScale: number) {
-  return Math.floor(map(noise(value * noiseScale), 0 + crop, 1 - crop, 0, max));
+  return map(noise(value * noiseScale), 0 + crop, 1 - crop, 0, max);
 }
 
 function drawBoundaries(ctx: Context, height: number, width: number) {

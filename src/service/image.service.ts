@@ -2,7 +2,7 @@ import axios from "axios";
 import { Context, Markup } from "telegraf";
 import { Message, PhotoSize, User } from "telegraf/typings/core/types/typegram";
 import { ExtraPhoto, MessageSubType } from "telegraf/typings/telegram-types";
-import { generateImage } from "../lib/draw";
+import { generateImage } from "../utils/draw";
 import { BotCommandType, BotListener } from "../types/core/global.type";
 import { ImageAction, ImageError, ImageTypo } from "../types/service/image.service.type";
 import BaseService from "./base.service";
